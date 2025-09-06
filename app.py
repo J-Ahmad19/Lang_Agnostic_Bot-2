@@ -30,7 +30,7 @@ import time
 
 if "vector" not in st.session_state:
     st.session_state.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001",transport="grpc")
-    st.session_state.loader = WebBaseLoader("https://jmi.ac.in/")
+    st.session_state.loader = WebBaseLoader("https://jmi.ac.in/ACADEMICS/Examinations/Frequently-Asked-Questions-(Faqs)")
     st.session_state.docs = st.session_state.loader.load()
     st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=100)
     st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:50]) # Limiting to first 50 documents for demo purposes
