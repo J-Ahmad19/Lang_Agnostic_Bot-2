@@ -14,6 +14,8 @@ from langchain.vectorstores import FAISS
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader
+
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -39,10 +41,8 @@ if "vector" not in st.session_state:
    
    
     # Load the PDF file
-    pdf_file="prospectus.pdf"
    
-        
-    st.session_state.loader = PyPDFLoader(pdf_file)
+    st.session_state.loader = PyPDFDirectoryLoader("./pdf_file")
     st.session_state.pages = st.session_state.loader.load_and_split()
     
 
