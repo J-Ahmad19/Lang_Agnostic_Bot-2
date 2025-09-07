@@ -57,7 +57,7 @@ if "vector" not in st.session_state:
     
 
 st.title("Language Agnostic ChatBot")
-llm=ChatGroq(api_key=groq_api_key, model="meta-llama/llama-prompt-guard-2-86m")  
+llm=ChatGroq(api_key=groq_api_key, model="deepseek-r1-distill-llama-70b")  
 
 ##PROMPT TEMPLATE
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
