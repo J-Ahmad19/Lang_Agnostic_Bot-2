@@ -13,7 +13,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
-from langchain.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 
 
@@ -57,7 +56,7 @@ if "vector" not in st.session_state:
     
 
 st.title("Language Agnostic ChatBot")
-llm=ChatGroq(api_key=groq_api_key, model="openai/gpt-oss-120b")  
+llm=ChatGroq(api_key=groq_api_key, model="openai/gpt-oss-20b")  
 
 ##PROMPT TEMPLATE
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -88,7 +87,7 @@ retrieval_chain=create_retrieval_chain(retriever,document_chain)
 
 #create a retriever tool
 from langchain.tools.retriever import create_retriever_tool
-retriever_tool=create_retriever_tool(retriever,name="Jamia_prospectus_faqs_search",description="Search in Jamia prospectus and faq_jamia.pdf for relevant information using this tool")
+retriever_tool=create_retriever_tool(retriever,name="Jamia_prospectus_faqs_search",description="Search in Jamia prospectus and all given pdfs for relevant information using this tool")
 
 #create agents
 from langchain.agents import create_tool_calling_agent
