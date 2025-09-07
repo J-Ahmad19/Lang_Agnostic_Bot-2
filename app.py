@@ -33,7 +33,7 @@ if "vector" not in st.session_state:
     st.session_state.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001",transport="grpc")
     st.session_state.loader = WebBaseLoader("https://jmi.ac.in/ACADEMICS/Examinations/Frequently-Asked-Questions-(Faqs)")
     st.session_state.docs = st.session_state.loader.load()
-    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
+    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs) # Limiting to first 50 documents for demo purposes
     st.session_state.vector = FAISS.from_documents(st.session_state.final_documents, st.session_state.embeddings)
 
@@ -47,7 +47,7 @@ if "vector" not in st.session_state:
 
 
     # Split the pages into smaller chunks
-    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
+    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     st.session_state.pdf = st.session_state.text_splitter.split_documents(st.session_state.pages)
 
     
