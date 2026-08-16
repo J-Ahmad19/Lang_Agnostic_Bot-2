@@ -1,106 +1,66 @@
 import streamlit as st
-import os
-import getpass
 import time
-import ollama
-from langchain_groq import ChatGroq
-from langchain_community.document_loaders import WebBaseLoader
-from langchain.embeddings import OllamaEmbeddings
-from langchain_ollama import OllamaEmbeddings
-from langchain_openai import OpenAIEmbeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import create_retrieval_chain
-from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_core.messages import HumanMessage, AIMessage
+from bot import get_vector_store, get_conversational_rag_chain
+from logger import initialize_logger, log_interaction
 
+st.set_page_config(page_title="Language Agnostic Campus Bot", layout="centered")
 
-from dotenv import load_dotenv
-load_dotenv()
-
-
-## LOADING GROQ API KEY FROM ENV VARIABLE   
-groq_api_key=os.environ['GROQ_API_KEY']
-
-if not os.getenv("GOOGLE_API_KEY"):
-    os.environ["GOOGLE_API_KEY"] = getpass.getpass("Enter your Google API key: ")
-
-import time
-
-
-if "vector" not in st.session_state:
-    st.session_state.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001",transport="grpc")
-    st.session_state.loader = WebBaseLoader("https://jmi.ac.in/ACADEMICS/Examinations/Frequently-Asked-Questions-(Faqs)")
-    st.session_state.docs = st.session_state.loader.load()
-    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs) # Limiting to first 50 documents for demo purposes
-    st.session_state.vector = FAISS.from_documents(st.session_state.final_documents, st.session_state.embeddings)
-
-   
-   
-    # Load the PDF file
-   
-    st.session_state.loader = PyPDFDirectoryLoader("./pdf_file")
-    st.session_state.pages = st.session_state.loader.load_and_split()
+def init_app():
+    initialize_logger()
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
     
+    if "rag_chain" not in st.session_state:
+        try:
+            vector_store = get_vector_store()
+            st.session_state.rag_chain = get_conversational_rag_chain(vector_store)
+        except Exception as e:
+            st.error(f"Error initializing chatbot: {e}")
+            st.stop()
 
-
-    # Split the pages into smaller chunks
-    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    st.session_state.pdf = st.session_state.text_splitter.split_documents(st.session_state.pages)
-
+def main():
+    st.title("🏛️ Language Agnostic Campus Bot")
+    st.markdown("Ask any questions related to campus, fees, scholarships, or timetables in your preferred language!")
     
-    st.session_state.vector = FAISS.from_documents(st.session_state.pdf, st.session_state.embeddings)
+    init_app()
+
+    # Display chat history
+    for msg in st.session_state.chat_history:
+        if isinstance(msg, HumanMessage):
+            with st.chat_message("user"):
+                st.write(msg.content)
+        elif isinstance(msg, AIMessage):
+            with st.chat_message("assistant"):
+                st.write(msg.content)
+
+    # Chat Input
+    query = st.chat_input("Enter your query here...")
     
-    
+    if query:
+        with st.chat_message("user"):
+            st.write(query)
+            
+        # Invoke the chain
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                start = time.process_time()
+                response = st.session_state.rag_chain.invoke({
+                    "chat_history": st.session_state.chat_history,
+                    "input": query
+                })
+                end = time.process_time()
+                
+                answer = response["answer"]
+                st.write(answer)
+                st.caption(f"Response time: {end - start:.2f}s")
+                
+        # Update history
+        st.session_state.chat_history.append(HumanMessage(content=query))
+        st.session_state.chat_history.append(AIMessage(content=answer))
+        
+        # Log interaction
+        log_interaction(query, "Auto-detected by LLM", answer)
 
-st.title("Language Agnostic ChatBot")
-llm=ChatGroq(api_key=groq_api_key, model="openai/gpt-oss-20b")  
-
-##PROMPT TEMPLATE
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-
-##document prompt chain
-document_prompt = ChatPromptTemplate.from_template("""
-You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
-{context}
-Question: {input}
-""")
-
-
-
-
-# Define the correct prompt template for the agent
-agent_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful AI assistant. Use the available tools to answer questions."),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ]
-)
- 
-document_chain=create_stuff_documents_chain(llm,document_prompt)
-retriever=st.session_state.vector.as_retriever()
-retrieval_chain=create_retrieval_chain(retriever,document_chain)
-
-#create a retriever tool
-from langchain.tools.retriever import create_retriever_tool
-retriever_tool=create_retriever_tool(retriever,name="Jamia_prospectus_faqs_search",description="Search in Jamia prospectus and all given pdfs for relevant information using this tool")
-
-#create agents
-from langchain.agents import create_tool_calling_agent
-agent=create_tool_calling_agent(llm,[retriever_tool],agent_prompt)
-
-#create agent executor  
-from langchain.agents import AgentExecutor
-agent_executor = AgentExecutor(agent=agent, tools=[retriever_tool], verbose=True)
-
-query=st.text_input("Enter your query here")
-
-if query:
-    start=time.process_time()
-    response=agent_executor.invoke({"input":query})
-    print("Response time : ",time.process_time()-start)
-    st.write(response['output'])
+if __name__ == "__main__":
+    main()
