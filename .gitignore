@@ -1,6 +1,5 @@
 /.env
 /myenv
 __pycache__/
-faiss_index/
 .streamlit/
 chat_logs.csv
