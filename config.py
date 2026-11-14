@@ -12,7 +12,7 @@ FAQ_URLS = [
 
 # Models
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-LLM_MODEL_NAME = "llama-3.1-8b-instant" # Groq model
+LLM_MODEL_NAME = "openai/gpt-oss-120b" # Groq model
 
 # Chunking configs
 CHUNK_SIZE = 1000
